@@ -1,0 +1,21 @@
+{
+  "/page": "app/page.js",
+  "/auth/signin/page": "app/auth/signin/page.js",
+  "/api/auth/[...nextauth]/route": "app/api/auth/[...nextauth]/route.js",
+  "/dashboard/page": "app/dashboard/page.js",
+  "/api/dashboard/stats/route": "app/api/dashboard/stats/route.js",
+  "/agendamentos/page": "app/agendamentos/page.js",
+  "/pacientes/page": "app/pacientes/page.js",
+  "/api/appointments/route": "app/api/appointments/route.js",
+  "/api/patients/route": "app/api/patients/route.js",
+  "/procedimentos/page": "app/procedimentos/page.js",
+  "/api/procedures/route": "app/api/procedures/route.js",
+  "/produtos/page": "app/produtos/page.js",
+  "/api/products/route": "app/api/products/route.js",
+  "/historico/page": "app/historico/page.js",
+  "/estoque/page": "app/estoque/page.js",
+  "/api/stock-movements/route": "app/api/stock-movements/route.js",
+  "/financeiro/page": "app/financeiro/page.js",
+  "/relatorios/page": "app/relatorios/page.js",
+  "/usuarios/page": "app/usuarios/page.js"
+}

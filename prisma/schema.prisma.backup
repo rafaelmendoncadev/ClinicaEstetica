@@ -1,0 +1,268 @@
+generator client {
+    provider = "prisma-client-js"
+    binaryTargets = ["native", "linux-musl-arm64-openssl-3.0.x"]
+    output = "/home/ubuntu/clinica_estetica/app/node_modules/.prisma/client"
+}
+
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+// Sistema de autenticação NextAuth
+model Account {
+    id                String  @id @default(cuid())
+    userId            String
+    type              String
+    provider          String
+    providerAccountId String
+    refresh_token     String? @db.Text
+    access_token      String? @db.Text
+    expires_at        Int?
+    token_type        String?
+    scope             String?
+    id_token          String? @db.Text
+    session_state     String?
+    user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@unique([provider, providerAccountId])
+}
+
+model Session {
+    id           String   @id @default(cuid())
+    sessionToken String   @unique
+    userId       String
+    expires      DateTime
+    user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+    identifier String
+    token      String   @unique
+    expires    DateTime
+
+    @@unique([identifier, token])
+}
+
+// Usuários do sistema
+model User {
+    id            String    @id @default(cuid())
+    name          String
+    email         String    @unique
+    password      String
+    role          UserRole  @default(RECEPTIONIST)
+    emailVerified DateTime?
+    image         String?
+    active        Boolean   @default(true)
+    createdAt     DateTime  @default(now())
+    updatedAt     DateTime  @updatedAt
+
+    // Relacionamentos NextAuth
+    accounts Account[]
+    sessions Session[]
+
+    // Relacionamentos do sistema
+    appointments     Appointment[]
+    treatments       Treatment[]
+    financialRecords FinancialRecord[]
+    stockMovements   StockMovement[]
+
+    @@map("users")
+}
+
+// Pacientes
+model Patient {
+    id          String   @id @default(cuid())
+    name        String
+    email       String?  @unique
+    phone       String
+    cpf         String?  @unique
+    birthDate   DateTime?
+    address     String?
+    neighborhood String?
+    city        String?
+    state       String?
+    zipCode     String?
+    observations String?
+    active      Boolean  @default(true)
+    createdAt   DateTime @default(now())
+    updatedAt   DateTime @updatedAt
+
+    // Relacionamentos
+    appointments Appointment[]
+    treatments   Treatment[]
+
+    @@map("patients")
+}
+
+// Procedimentos oferecidos pela clínica
+model Procedure {
+    id          String   @id @default(cuid())
+    name        String
+    description String?
+    duration    Int      // duração em minutos
+    price       Decimal  @db.Decimal(10, 2)
+    category    String
+    active      Boolean  @default(true)
+    createdAt   DateTime @default(now())
+    updatedAt   DateTime @updatedAt
+
+    // Relacionamentos
+    appointments Appointment[]
+    treatments   Treatment[]
+    products     ProcedureProduct[]
+
+    @@map("procedures")
+}
+
+// Produtos utilizados nos procedimentos
+model Product {
+    id          String   @id @default(cuid())
+    name        String
+    brand       String?
+    category    String
+    unit        String   // unidade (ml, g, unidade, etc)
+    costPrice   Decimal  @db.Decimal(10, 2)
+    salePrice   Decimal? @db.Decimal(10, 2)
+    minStock    Int      @default(0)
+    currentStock Int     @default(0)
+    active      Boolean  @default(true)
+    createdAt   DateTime @default(now())
+    updatedAt   DateTime @updatedAt
+
+    // Relacionamentos
+    procedures     ProcedureProduct[]
+    stockMovements StockMovement[]
+    treatments     TreatmentProduct[]
+
+    @@map("products")
+}
+
+// Relacionamento entre procedimentos e produtos
+model ProcedureProduct {
+    id          String    @id @default(cuid())
+    procedureId String
+    productId   String
+    quantity    Decimal   @db.Decimal(8, 3) // quantidade utilizada
+    procedure   Procedure @relation(fields: [procedureId], references: [id], onDelete: Cascade)
+    product     Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+    @@unique([procedureId, productId])
+    @@map("procedure_products")
+}
+
+// Agendamentos
+model Appointment {
+    id          String            @id @default(cuid())
+    patientId   String
+    procedureId String
+    userId      String            // profissional responsável
+    date        DateTime
+    startTime   String            // formato HH:mm
+    endTime     String            // formato HH:mm
+    status      AppointmentStatus @default(SCHEDULED)
+    notes       String?
+    createdAt   DateTime          @default(now())
+    updatedAt   DateTime          @updatedAt
+
+    // Relacionamentos
+    patient   Patient   @relation(fields: [patientId], references: [id])
+    procedure Procedure @relation(fields: [procedureId], references: [id])
+    user      User      @relation(fields: [userId], references: [id])
+
+    @@map("appointments")
+}
+
+// Tratamentos realizados (histórico)
+model Treatment {
+    id          String   @id @default(cuid())
+    patientId   String
+    procedureId String
+    userId      String   // profissional que realizou
+    date        DateTime
+    price       Decimal  @db.Decimal(10, 2)
+    discount    Decimal? @db.Decimal(10, 2)
+    totalPaid   Decimal  @db.Decimal(10, 2)
+    paymentMethod String
+    observations String?
+    createdAt   DateTime @default(now())
+    updatedAt   DateTime @updatedAt
+
+    // Relacionamentos
+    patient   Patient   @relation(fields: [patientId], references: [id])
+    procedure Procedure @relation(fields: [procedureId], references: [id])
+    user      User      @relation(fields: [userId], references: [id])
+    products  TreatmentProduct[]
+
+    @@map("treatments")
+}
+
+// Produtos utilizados em cada tratamento
+model TreatmentProduct {
+    id          String    @id @default(cuid())
+    treatmentId String
+    productId   String
+    quantity    Decimal   @db.Decimal(8, 3)
+    treatment   Treatment @relation(fields: [treatmentId], references: [id], onDelete: Cascade)
+    product     Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+    @@map("treatment_products")
+}
+
+// Controle financeiro
+model FinancialRecord {
+    id          String            @id @default(cuid())
+    type        FinancialType
+    category    String
+    description String
+    amount      Decimal           @db.Decimal(10, 2)
+    date        DateTime
+    userId      String
+    user        User              @relation(fields: [userId], references: [id])
+    createdAt   DateTime          @default(now())
+    updatedAt   DateTime          @updatedAt
+
+    @@map("financial_records")
+}
+
+// Movimentações de estoque
+model StockMovement {
+    id          String            @id @default(cuid())
+    productId   String
+    type        StockMovementType
+    quantity    Decimal           @db.Decimal(8, 3)
+    reason      String
+    userId      String
+    date        DateTime          @default(now())
+    
+    product Product @relation(fields: [productId], references: [id])
+    user    User    @relation(fields: [userId], references: [id])
+
+    @@map("stock_movements")
+}
+
+// Enums
+enum UserRole {
+    ADMIN
+    ESTHETICIAN
+    RECEPTIONIST
+}
+
+enum AppointmentStatus {
+    SCHEDULED
+    CONFIRMED
+    IN_PROGRESS
+    COMPLETED
+    CANCELLED
+    NO_SHOW
+}
+
+enum FinancialType {
+    INCOME
+    EXPENSE
+}
+
+enum StockMovementType {
+    IN
+    OUT
+}

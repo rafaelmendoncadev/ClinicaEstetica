@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__ide__getDiagnostics",
+      "Bash(npm install)",
+      "Bash(npm install:*)",
+      "Bash(npm run lint)",
+      "Bash(npx tsc:*)",
+      "Bash(npm run dev:*)",
+      "Bash(npx prisma generate:*)",
+      "Bash(pkill:*)",
+      "Bash(true)",
+      "Bash(npm run build:*)",
+      "Bash(rm:*)",
+      "Bash(taskkill:*)",
+      "Bash(NODE_OPTIONS=\"--max-old-space-size=4096\" npm run dev)"
+    ],
+    "deny": []
+  }
+}
